@@ -1,0 +1,154 @@
+{
+  "data": [
+    {
+      "stash": {
+        "blocked": [
+          "scan-itk@scansy4.com:1.9"
+        ],
+        "unblocked": [],
+        "softblocked": [
+          "safescriptsharbour@createdfor.me:1.0.0",
+          "safescriptsharbour@createdfor.me:1.1.0",
+          "safescriptsharbour@createdfor.me:1.2.0",
+          "safescriptsharbour@createdfor.me:1.3.0",
+          "custom-header-injector@example.com:1.0.0",
+          "{a6669b0f-2404-4b88-b1e1-53b12f92c40f}:1.1",
+          "{a6669b0f-2404-4b88-b1e1-53b12f92c40f}:1.3",
+          "{a6669b0f-2404-4b88-b1e1-53b12f92c40f}:2.0",
+          "{a6669b0f-2404-4b88-b1e1-53b12f92c40f}:8.0.0",
+          "{a6669b0f-2404-4b88-b1e1-53b12f92c40f}:8.1.0",
+          "{a6669b0f-2404-4b88-b1e1-53b12f92c40f}:8.1.1",
+          "breaksheet-analytics@cottagehomecare.com:1.0.4",
+          "lokaler-youtube-playlist-manager@example.local:0.1.0",
+          "lokaler-youtube-playlist-manager@example.local:1.0.0",
+          "safescriptsharbour.1.2.0@createdfor.me:1.2.0",
+          "safescriptsharbour0@createdfor.me:1.6.0",
+          "anime4k-webextension-plus@daika7ana:0.5.2",
+          "@kkplayer:26.6.41",
+          "anime4k-webextension-plus@daika7ana:0.5.3",
+          "@kkplayer:26.6.35",
+          "@kkplayer:26.6.22",
+          "btt-sxi-store@artadosearch.com:2.1",
+          "btt-sxi-store@artadosearch.com:2.2",
+          "vplus-unlock@vol-bypass.local:1.5.1",
+          "vplus-unlock@vol-bypass.local:1.6.1",
+          "{46aa4f14-8130-48a3-9f5e-6c8e19c43ded}:1.0",
+          "copy-selection-as-markdown-personal@badger.local:1.0.1",
+          "peacedata@home.arpa:1.2",
+          "scraper-cache-linker@aison.ai:1.0"
+        ]
+      },
+      "schema": 1780576584924,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1780598106715,
+      "id": "b11dc5fd-a17d-45c1-b67f-c77d9b080b4a",
+      "last_modified": 1780598202424
+    },
+    {
+      "stash": {
+        "blocked": [],
+        "unblocked": [],
+        "softblocked": [
+          "scribeo@drane-grenoble.fr:0.2.0",
+          "gatekeeper1@fuukaze.com:1.0",
+          "gatekeeper1@fuukaze.com:2.0",
+          "gatekeeper1@fuukaze.com:2.1",
+          "mbt-import@daunois.fr:1.3.2",
+          "subback420@gmail.com:1.0",
+          "subback420@gmail.com:1.1",
+          "umpa@wac.it:1.4.0",
+          "opal-redesign@just2it:0.2.0",
+          "opal-redesign@just2it:0.2.2",
+          "opal-redesign@just2it:0.2.3",
+          "nolijncfnkgaikbjbdaogikpmpbdcdef@chrome-store-foxified-2113343093:2.6.1",
+          "fairguard@extension:1.0.3",
+          "cockpit@phew.blue:9.9.9",
+          "cockpit@phew.blue:0.1.0",
+          "eye-protect@user.local:2.2",
+          "dark.background@local:2.2",
+          "linkedin-scroll-fix@humarotta:1.0.0",
+          "syntaxhighlighter@streamscript.com:62.1"
+        ]
+      },
+      "schema": 1780554992700,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1780576505332,
+      "id": "534425c0-e759-443f-ba72-c7a9706f7768",
+      "last_modified": 1780576584529
+    },
+    {
+      "stash": {
+        "blocked": [],
+        "unblocked": [],
+        "softblocked": [
+          "linuxdownloader@boussari.local:2.3.3",
+          "proxyer@apage.page:1.0.109",
+          "proxyer@apage.page:1.0.110",
+          "proxyer@apage.page:1.0.111",
+          "proxyer@apage.page:1.0.112"
+        ]
+      },
+      "schema": 1780533396998,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1780554906368,
+      "id": "9c8caf43-8810-4403-b145-efecdb9df39f",
+      "last_modified": 1780554992507
+    },
+    {
+      "stash": {
+        "blocked": [],
+        "unblocked": [],
+        "softblocked": [
+          "adblockerpro@extension:2.1",
+          "adblockerpro@extension:2.0",
+          "addon@2004.chat:1.0.1",
+          "reject-cookies-not-privacy@example.local:0.1.0",
+          "rfp-darkmode-spoofer@local.net:1.0.0",
+          "ss@example.com:1.0.4",
+          "buscador-siges-igss-sm@elvis.rodriguez:1.4",
+          "translator@mozilla.fork:1.9.3",
+          "auto-group@judu:0.1.0",
+          "{e84b3165-4f36-45ca-8e75-449066a9fe34}:1.0",
+          "{e84b3165-4f36-45ca-8e75-449066a9fe34}:2.0",
+          "{c1730fc9-ea2e-406d-a3c9-0101aa898706}:1.0"
+        ]
+      },
+      "schema": 1780511939950,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1780533306677,
+      "id": "8ed2e22f-373f-458f-bd69-147c6fc3a22e",
+      "last_modified": 1780533396779
+    },
+    {
+      "schema": 1780511900610,
+      "attachment": {
+        "hash": "8d10fb8eacdcdeb78d29810763b7f446d662dbd097b0323c9243f816fc7bdb33",
+        "size": 192872,
+        "filename": "filter.bin",
+        "location": "staging/addons-bloomfilters/20260603183820--51453fc1-28a5-4a9f-8bf8-e750aba654f4--2c4237ee-5b6b-4ca8-9bc3-e4d97fca72a6.bin",
+        "mimetype": "application/octet-stream"
+      },
+      "key_format": "{guid}:{version}",
+      "attachment_type": "softblocks-bloomfilter-base",
+      "generation_time": 1780511705423,
+      "id": "51453fc1-28a5-4a9f-8bf8-e750aba654f4",
+      "last_modified": 1780511939815
+    },
+    {
+      "schema": 1780490200552,
+      "attachment": {
+        "hash": "c5be2480c5311441de4f0a1b90818e03fb7085155d8273582d7953d93d762262",
+        "size": 897822,
+        "filename": "filter.bin",
+        "location": "staging/addons-bloomfilters/20260603183820--e721bc94-cd19-484f-9665-ba2f47c00783--93bc976a-9ba0-4f68-91ae-14bc95dba649.bin",
+        "mimetype": "application/octet-stream"
+      },
+      "key_format": "{guid}:{version}",
+      "attachment_type": "bloomfilter-base",
+      "generation_time": 1780511705423,
+      "id": "e721bc94-cd19-484f-9665-ba2f47c00783",
+      "last_modified": 1780511939812
+    }
+  ],
+  "timestamp": 1780598202424
+}
