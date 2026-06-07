@@ -5,6 +5,12 @@
 #ifndef LAYOUT_STYLE_TYPEDOM_CSSMATHVALUE_H_
 #define LAYOUT_STYLE_TYPEDOM_CSSMATHVALUE_H_
 
+#include "mozilla/dom/CSSMathClampBindingFwd.h"
+#include "mozilla/dom/CSSMathInvertBindingFwd.h"
+#include "mozilla/dom/CSSMathMaxBindingFwd.h"
+#include "mozilla/dom/CSSMathMinBindingFwd.h"
+#include "mozilla/dom/CSSMathNegateBindingFwd.h"
+#include "mozilla/dom/CSSMathProductBindingFwd.h"
 #include "mozilla/dom/CSSMathSumBindingFwd.h"
 #include "mozilla/dom/CSSNumericValue.h"
 #include "nsStringFwd.h"
@@ -29,6 +35,12 @@ class CSSMathValue : public CSSNumericValue {
   enum class MathValueType {
     Uninitialized,  // TODO: Remove once the implementation is complete.
     MathSum,
+    MathProduct,
+    MathNegate,
+    MathInvert,
+    MathMin,
+    MathMax,
+    MathClamp,
   };
 
   explicit CSSMathValue(nsCOMPtr<nsISupports> aParent);
@@ -54,7 +66,56 @@ class CSSMathValue : public CSSNumericValue {
   // Defined in CSSMathSum.cpp
   CSSMathSum& GetAsCSSMathSum();
 
-  void ToCssTextWithProperty(const CSSPropertyId& aPropertyId, bool aNested,
+  bool IsCSSMathProduct() const;
+
+  // Defined in CSSMathProduct.cpp
+  const CSSMathProduct& GetAsCSSMathProduct() const;
+
+  // Defined in CSSMathProduct.cpp
+  CSSMathProduct& GetAsCSSMathProduct();
+
+  bool IsCSSMathNegate() const;
+
+  // Defined in CSSMathNegate.cpp
+  const CSSMathNegate& GetAsCSSMathNegate() const;
+
+  // Defined in CSSMathNegate.cpp
+  CSSMathNegate& GetAsCSSMathNegate();
+
+  bool IsCSSMathInvert() const;
+
+  // Defined in CSSMathInvert.cpp
+  const CSSMathInvert& GetAsCSSMathInvert() const;
+
+  // Defined in CSSMathInvert.cpp
+  CSSMathInvert& GetAsCSSMathInvert();
+
+  bool IsCSSMathMin() const;
+
+  // Defined in CSSMathMin.cpp
+  const CSSMathMin& GetAsCSSMathMin() const;
+
+  // Defined in CSSMathMin.cpp
+  CSSMathMin& GetAsCSSMathMin();
+
+  bool IsCSSMathMax() const;
+
+  // Defined in CSSMathMax.cpp
+  const CSSMathMax& GetAsCSSMathMax() const;
+
+  // Defined in CSSMathMax.cpp
+  CSSMathMax& GetAsCSSMathMax();
+
+  bool IsCSSMathClamp() const;
+
+  // Defined in CSSMathClamp.cpp
+  const CSSMathClamp& GetAsCSSMathClamp() const;
+
+  // Defined in CSSMathClamp.cpp
+  CSSMathClamp& GetAsCSSMathClamp();
+
+  void ToCssTextWithProperty(const CSSPropertyId& aPropertyId,
+                             const SerializationContext& aContext,
                              nsACString& aDest) const;
 
   // TODO: This can be changed to return StyleMathValue directly once the

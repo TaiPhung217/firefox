@@ -117,7 +117,33 @@ class CSSNumericValue : public CSSStyleValue {
   void ToCssTextWithProperty(const CSSPropertyId& aPropertyId,
                              nsACString& aDest) const;
 
-  void ToCssTextWithProperty(const CSSPropertyId& aPropertyId, bool aNested,
+  struct Nested {};
+  struct ParenLess {};
+
+  class SerializationContext {
+   public:
+    constexpr SerializationContext() = default;
+
+    constexpr explicit SerializationContext(Nested) : mKind(Kind::Nested) {}
+
+    constexpr SerializationContext(Nested, ParenLess)
+        : mKind(Kind::NestedParenLess) {}
+
+    bool IsNested() const { return mKind != Kind::Root; }
+    bool IsParenLess() const { return mKind == Kind::NestedParenLess; }
+
+   private:
+    enum class Kind : uint8_t {
+      Root,
+      Nested,
+      NestedParenLess,
+    };
+
+    Kind mKind = Kind::Root;
+  };
+
+  void ToCssTextWithProperty(const CSSPropertyId& aPropertyId,
+                             const SerializationContext& aContext,
                              nsACString& aDest) const;
 
   // TODO: This can be changed to return StyleNumericValue directly once the

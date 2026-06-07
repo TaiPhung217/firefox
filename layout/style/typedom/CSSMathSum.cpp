@@ -10,6 +10,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/ServoStyleConsts.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/CSSMathNegate.h"
 #include "mozilla/dom/CSSMathSumBinding.h"
 #include "mozilla/dom/CSSNumericArray.h"
 #include "mozilla/dom/CSSNumericValue.h"
@@ -86,21 +87,41 @@ CSSNumericArray* CSSMathSum::Values() const { return mValues; }
 // end of CSSMathSum Web IDL implementation
 
 void CSSMathSum::ToCssTextWithProperty(const CSSPropertyId& aPropertyId,
-                                       bool aNested, nsACString& aDest) const {
-  aDest.Append(aNested ? "("_ns : "calc("_ns);
+                                       const SerializationContext& aContext,
+                                       nsACString& aDest) const {
+  if (!aContext.IsParenLess()) {
+    aDest.Append(aContext.IsNested() ? "("_ns : "calc("_ns);
+  }
 
   const auto& values = mValues->GetValues();
   MOZ_DIAGNOSTIC_ASSERT(!values.IsEmpty());
 
-  values[0]->ToCssTextWithProperty(aPropertyId, /* aNested */ true, aDest);
+  values[0]->ToCssTextWithProperty(aPropertyId, SerializationContext(Nested{}),
+                                   aDest);
 
   for (size_t index = 1; index < values.Length(); ++index) {
+    const RefPtr<CSSNumericValue>& value = values[index];
+
+    if (value->IsCSSMathValue()) {
+      CSSMathValue& mathValue = value->GetAsCSSMathValue();
+      if (mathValue.IsCSSMathNegate()) {
+        CSSMathNegate& mathNegate = mathValue.GetAsCSSMathNegate();
+
+        aDest.Append(" - "_ns);
+        mathNegate.Value()->ToCssTextWithProperty(
+            aPropertyId, SerializationContext(Nested{}), aDest);
+        continue;
+      }
+    }
+
     aDest.Append(" + "_ns);
-    values[index]->ToCssTextWithProperty(aPropertyId, /* aNested */ true,
-                                         aDest);
+    value->ToCssTextWithProperty(aPropertyId, SerializationContext(Nested{}),
+                                 aDest);
   }
 
-  aDest.Append(")"_ns);
+  if (!aContext.IsParenLess()) {
+    aDest.Append(")"_ns);
+  }
 }
 
 StyleMathSum CSSMathSum::ToStyleMathSum() const {
