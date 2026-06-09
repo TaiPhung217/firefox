@@ -2447,24 +2447,8 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         dest: &mut ThinVec<TypedValue>,
         level: ArgumentLevel,
     ) -> Result<(), ()> {
-        // XXX Only supporting Sum and Leaf for now
+        // Note: Only supporting Leaf, Sum, MinMax and Clamp for now
         match *self {
-            Self::Sum(ref children) => {
-                let mut values = ThinVec::new();
-                for child in &**children {
-                    let nested = CalcNodeWithLevel {
-                        node: child,
-                        level: ArgumentLevel::Nested,
-                    };
-                    if let Some(TypedValue::Numeric(inner)) = nested.to_typed_value() {
-                        values.push(inner);
-                    }
-                }
-                dest.push(TypedValue::Numeric(NumericValue::Math(MathValue::Sum(
-                    values,
-                ))));
-                Ok(())
-            },
             Self::Leaf(ref l) => match l.to_typed_value() {
                 Some(TypedValue::Numeric(inner)) => {
                     match level {
@@ -2480,6 +2464,61 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     Ok(())
                 },
                 _ => Err(()),
+            },
+            Self::Sum(ref children) => {
+                let mut values = ThinVec::new();
+
+                for child in &**children {
+                    if let Some(inner) = CalcNodeWithLevel::nested(child).to_numeric_value() {
+                        values.push(inner);
+                    }
+                }
+
+                dest.push(TypedValue::Numeric(NumericValue::Math(MathValue::Sum(
+                    values,
+                ))));
+                Ok(())
+            },
+            Self::MinMax(ref children, op) => {
+                let mut values = ThinVec::new();
+
+                for child in &**children {
+                    if let Some(inner) = CalcNodeWithLevel::argument_root(child).to_numeric_value()
+                    {
+                        values.push(inner);
+                    }
+                }
+
+                let math_value = match op {
+                    MinMaxOp::Min => MathValue::Min(values),
+                    MinMaxOp::Max => MathValue::Max(values),
+                };
+
+                dest.push(TypedValue::Numeric(NumericValue::Math(math_value)));
+                Ok(())
+            },
+            Self::Clamp {
+                ref min,
+                ref center,
+                ref max,
+            } => {
+                let Some(lower) = CalcNodeWithLevel::argument_root(min).to_numeric_value() else {
+                    return Err(());
+                };
+
+                let Some(value) = CalcNodeWithLevel::argument_root(center).to_numeric_value()
+                else {
+                    return Err(());
+                };
+
+                let Some(upper) = CalcNodeWithLevel::argument_root(max).to_numeric_value() else {
+                    return Err(());
+                };
+
+                dest.push(TypedValue::Numeric(NumericValue::Math(MathValue::Clamp(
+                    [lower, value, upper].into(),
+                ))));
+                Ok(())
             },
             _ => Err(()),
         }
@@ -2513,13 +2552,35 @@ impl<L: CalcNodeLeaf> ToCss for CalcNode<L> {
 
 impl<L: CalcNodeLeaf> ToTyped for CalcNode<L> {
     fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
-        self.to_typed_impl(dest, ArgumentLevel::CalculationRoot)
+        CalcNodeWithLevel::calculation_root(self).to_typed(dest)
     }
 }
 
 struct CalcNodeWithLevel<'a, L> {
     node: &'a CalcNode<L>,
     level: ArgumentLevel,
+}
+
+impl<'a, L> CalcNodeWithLevel<'a, L> {
+    #[inline]
+    fn new(node: &'a CalcNode<L>, level: ArgumentLevel) -> Self {
+        Self { node, level }
+    }
+
+    #[inline]
+    fn calculation_root(node: &'a CalcNode<L>) -> Self {
+        Self::new(node, ArgumentLevel::CalculationRoot)
+    }
+
+    #[inline]
+    fn argument_root(node: &'a CalcNode<L>) -> Self {
+        Self::new(node, ArgumentLevel::ArgumentRoot)
+    }
+
+    #[inline]
+    fn nested(node: &'a CalcNode<L>) -> Self {
+        Self::new(node, ArgumentLevel::Nested)
+    }
 }
 
 impl<'a, L: CalcNodeLeaf> ToTyped for CalcNodeWithLevel<'a, L> {
