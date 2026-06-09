@@ -27,11 +27,13 @@ use crate::style_adjuster::StyleAdjuster;
 use crate::stylesheets::container_rule::ContainerSizeQuery;
 use crate::stylesheets::layer_rule::LayerOrder;
 use crate::stylist::Stylist;
+use crate::values::computed::tree_counting::TreeCountingInfo;
 #[cfg(feature = "gecko")]
 use crate::values::specified::length::FontBaseSize;
 use crate::values::specified::position::PositionTryFallbacksTryTactic;
 use crate::values::{computed, specified};
 use rustc_hash::FxHashMap;
+use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
@@ -232,10 +234,10 @@ pub enum CascadeMode<'a, 'b> {
     },
 }
 
-fn iter_declarations<'builder, 'decls: 'builder>(
+fn iter_declarations<'custom_builder, 'decls: 'custom_builder, 'builder>(
     iter: impl Iterator<Item = (&'decls PropertyDeclaration, CascadePriority)>,
     declarations: &mut Declarations<'decls>,
-    mut custom_builder: Option<&mut CustomPropertiesBuilder<'builder, 'decls>>,
+    mut custom_builder: Option<&mut CustomPropertiesBuilder<'custom_builder, 'builder>>,
     attribute_tracker: &mut AttributeTracker,
 ) {
     for (declaration, priority) in iter {
@@ -257,31 +259,32 @@ fn iter_declarations<'builder, 'decls: 'builder>(
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
-pub fn apply_declarations<'a, E, I>(
-    stylist: &'a Stylist,
-    pseudo: Option<&'a PseudoElement>,
+pub fn apply_declarations<'decls, E, I>(
+    stylist: &Stylist,
+    pseudo: Option<&PseudoElement>,
     rules: &StrongRuleNode,
     guards: &StylesheetGuards,
     iter: I,
-    parent_style: Option<&'a ComputedValues>,
+    parent_style: Option<&ComputedValues>,
     layout_parent_style: Option<&ComputedValues>,
-    first_line_reparenting: FirstLineReparenting<'a>,
-    try_tactic: &'a PositionTryFallbacksTryTactic,
+    first_line_reparenting: FirstLineReparenting<'_>,
+    try_tactic: &PositionTryFallbacksTryTactic,
     cascade_mode: CascadeMode,
     cascade_input_flags: ComputedValueFlags,
     included_cascade_flags: RuleCascadeFlags,
-    rule_cache: Option<&'a RuleCache>,
-    rule_cache_conditions: &'a mut RuleCacheConditions,
+    rule_cache: Option<&RuleCache>,
+    rule_cache_conditions: &mut RuleCacheConditions,
     element: Option<E>,
 ) -> Arc<ComputedValues>
 where
-    E: TElement + 'a,
-    I: Iterator<Item = (&'a PropertyDeclaration, CascadePriority)>,
+    E: TElement,
+    I: Iterator<Item = (&'decls PropertyDeclaration, CascadePriority)>,
 {
     debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
     let device = stylist.device();
     let inherited_style = parent_style.unwrap_or(device.default_computed_values());
     let is_root_element = pseudo.is_none() && element.map_or(false, |e| e.is_root());
+    let tree_counting_info = element.and_then(|e| TreeCountingInfo::for_element(e));
 
     let container_size_query =
         ContainerSizeQuery::for_option_element(element, Some(inherited_style), pseudo.is_some());
@@ -302,6 +305,7 @@ where
         rule_cache_conditions,
         container_size_query,
         included_cascade_flags,
+        tree_counting_info,
     );
 
     context.style().add_flags(cascade_input_flags);
@@ -424,6 +428,21 @@ where
         // from being wasted effort, it will be wrong, since context.rule_cache_conditions won't be
         // set appropriately if we didn't compute those reset properties.)
         context.rule_cache_conditions.borrow_mut().set_uncacheable();
+    }
+
+    if context
+        .builder
+        .flags()
+        .intersects(ComputedValueFlags::tree_counting_function_flags())
+    {
+        if let Some(el) = element {
+            el.apply_selector_flags(ElementSelectorFlags::MAY_HAVE_TREE_COUNTING_FUNCTION);
+        } else {
+            debug_assert!(
+                false,
+                "Tree counting function flag applied without an element?"
+            );
+        }
     }
 
     context.builder.build()
@@ -1190,7 +1209,9 @@ impl<'b> Cascade<'b> {
             | ComputedValueFlags::USES_CONTAINER_UNITS
             | ComputedValueFlags::USES_VIEWPORT_UNITS
             | ComputedValueFlags::USES_FONT_RELATIVE_UNITS
-            | ComputedValueFlags::DEPENDS_ON_CONTAINER_STYLE_QUERY;
+            | ComputedValueFlags::DEPENDS_ON_CONTAINER_STYLE_QUERY
+            | ComputedValueFlags::USES_SIBLING_COUNT
+            | ComputedValueFlags::USES_SIBLING_INDEX;
         context.builder.add_flags(style.flags & bits_to_copy);
 
         true
