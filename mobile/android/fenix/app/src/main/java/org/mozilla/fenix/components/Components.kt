@@ -57,6 +57,7 @@ import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 import org.mozilla.fenix.components.appstate.setup.checklist.getSetupChecklistCollection
 import org.mozilla.fenix.components.appstate.sports.SportsWidgetState
+import org.mozilla.fenix.components.bookmarks.lastSavedFolderCache
 import org.mozilla.fenix.components.ipprotection.IPProtection
 import org.mozilla.fenix.components.lens.GoogleLensAIControlFeature
 import org.mozilla.fenix.components.llm.Llm
@@ -72,7 +73,6 @@ import org.mozilla.fenix.distributions.DistributionIdManager
 import org.mozilla.fenix.ext.asRecentTabs
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.filterState
-import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.sort
 import org.mozilla.fenix.home.PocketMiddleware
 import org.mozilla.fenix.home.SettingsBackedPocketSettings
@@ -128,7 +128,7 @@ class Components(private val context: Context) {
         BackgroundServices(
             context,
             push,
-            context.settings(),
+            settings,
             analytics.crashReporter,
             core.lazyHistoryStorage,
             core.lazyBookmarksStorage,
@@ -153,6 +153,7 @@ class Components(private val context: Context) {
             topSitesStorage = lazyMonitored { core.topSitesStorage },
             bookmarksStorage = lazyMonitored { core.bookmarksStorage },
             historyStorage = lazyMonitored { core.historyStorage },
+            lastSavedFolderCache = lazyMonitored { context.components.settings.lastSavedFolderCache },
             syncedTabsCommands = lazyMonitored { backgroundServices.syncedTabsCommands },
             adsClientProvider = ads.lazyAdsClientProvider,
             appStore = lazyMonitored { appStore },
@@ -182,12 +183,12 @@ class Components(private val context: Context) {
 
     val addonsProvider by lazyMonitored {
         // Check if we have a customized (overridden) AMO collection (supported in Nightly & Beta)
-        if (FeatureFlags.customExtensionCollectionFeature && context.settings().amoCollectionOverrideConfigured()) {
+        if (FeatureFlags.customExtensionCollectionFeature && settings.amoCollectionOverrideConfigured()) {
             AMOAddonsProvider(
                 context,
                 core.client,
-                collectionUser = context.settings().overrideAmoUser,
-                collectionName = context.settings().overrideAmoCollection,
+                collectionUser = settings.overrideAmoUser,
+                collectionName = settings.overrideAmoCollection,
             )
         }
         // Use build config otherwise
@@ -234,12 +235,12 @@ class Components(private val context: Context) {
         AddonManager(core.store, core.engine, addonsProvider, addonUpdater)
     }
 
-    val analytics by lazyMonitored { Analytics(context, nimbus, performance.visualCompletenessQueue) }
+    val analytics by lazyMonitored { Analytics(context, settings, nimbus, performance.visualCompletenessQueue) }
 
     val remoteSettingsService = lazyMonitored {
         RemoteSettingsService(
             context,
-            when (context.settings().remoteSettingsServer) {
+            when (settings.remoteSettingsServer) {
                 context.getString(R.string.remote_settings_server_prod) -> RemoteSettingsServer.Prod.into()
                 context.getString(R.string.remote_settings_server_dev) -> RemoteSettingsServer.Dev.into()
                 context.getString(R.string.remote_settings_server_stage) -> RemoteSettingsServer.Stage.into()
@@ -352,7 +353,7 @@ class Components(private val context: Context) {
                     ),
                 ),
                 HomeTelemetryMiddleware(),
-                SetupChecklistPreferencesMiddleware(DefaultSetupChecklistRepository(context)),
+                SetupChecklistPreferencesMiddleware(DefaultSetupChecklistRepository(context, settings)),
                 SetupChecklistTelemetryMiddleware(),
                 ReviewPromptMiddleware(
                     continuousOnboardingInProgress = {
@@ -453,7 +454,7 @@ class Components(private val context: Context) {
                     summarizationFeatureConfiguration = core.summarizeFeatureSettings,
                 ),
                 FirefoxLabsSettingsSearchProvider(
-                    isLabsEnabled = { context.settings().enableFirefoxLabs },
+                    isLabsEnabled = { settings.enableFirefoxLabs },
                 ),
             ),
         )
@@ -508,12 +509,12 @@ class Components(private val context: Context) {
             }
             it.register(
                 VoiceSearchAIControlFeature(
-                    settings = context.settings(),
+                    settings = settings,
                     onUpdateWidget = { VoiceSearchAIControlFeature.updateWidget(context) },
                 ),
             )
             if (settings.googleLensIntegrationEnabled) {
-                it.register(GoogleLensAIControlFeature(settings = context.settings()))
+                it.register(GoogleLensAIControlFeature(settings = settings))
             }
         }
     }
