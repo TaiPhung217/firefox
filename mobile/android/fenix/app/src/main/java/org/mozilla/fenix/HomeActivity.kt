@@ -54,6 +54,7 @@ import kotlinx.coroutines.withContext
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.action.MediaSessionAction
 import mozilla.components.browser.state.action.SearchAction
+import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
@@ -134,6 +135,7 @@ import org.mozilla.fenix.ext.getIntentSessionId
 import org.mozilla.fenix.ext.getIntentSource
 import org.mozilla.fenix.ext.getNavDirections
 import org.mozilla.fenix.ext.hasTopDestination
+import org.mozilla.fenix.ext.isAllowedDuringOnboardingIntent
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.ext.recordEventInNimbus
@@ -452,12 +454,13 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
         window.decorView.layoutDirection = Locale.getDefault().layoutDirection
 
         binding = ActivityHomeBinding.inflate(layoutInflater)
-        val isLauncherIntent = intent.toSafeIntent().isLauncherIntent
 
-        val shouldShowOnboarding = components.settings.shouldShowOnboarding(
-            hasUserBeenOnboarded = components.fenixOnboarding.userHasBeenOnboarded(),
-            isLauncherIntent = isLauncherIntent,
-        )
+        Performance.processIntentIfPerformanceTest(intent, this)
+
+        val shouldShowOnboarding = !intent.isAllowedDuringOnboardingIntent(packageName) &&
+            with(components) {
+                settings.shouldShowOnboarding(fenixOnboarding.userHasBeenOnboarded())
+            }
 
         SplashScreenManager(
             splashScreenOperation = createSplashScreenOperation(shouldShowOnboarding),
@@ -466,7 +469,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
             storage = DefaultSplashScreenStorage(components.settings),
             showSplashScreen = { installSplashScreen().setKeepOnScreenCondition(it) },
             onSplashScreenFinished = { result ->
-                // Before the slashscreen ends the application has a different theme not supporting edge to edge.
+                // Before the splashscreen ends the application has a different theme not supporting edge to edge.
                 EdgeToEdgeFragmentLifecycleCallbacks.register(supportFragmentManager, window)
 
                 if (result.sendTelemetry) {
@@ -542,8 +545,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
                 StartOnHome.enterHomeScreen.record(NoExtras())
             }
         }
-
-        Performance.processIntentIfPerformanceTest(intent, this)
 
         // This will record an event in Nimbus' internal event store. Used for behavioral targeting
         recordEventInNimbus("app_opened")
@@ -1466,16 +1467,37 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
     }
 
     private fun openOptionsPage(activeOptionsPage: ActiveOptionsPage) {
-        createOpenOptionsPageDirections(activeOptionsPage)?.let {
-            navHost.navController.navigate(it)
+        if (!suppressOptionsPageInAddonManagement(
+                navHost.navController.currentDestination?.id,
+                activeOptionsPage,
+            )
+        ) {
+            createOpenOptionsPageDirections(activeOptionsPage)?.let {
+                navHost.navController.navigate(it)
+            }
         }
     }
 
     @VisibleForTesting
-    internal fun createOpenOptionsPageDirections(activeOptionsPage: ActiveOptionsPage): NavDirections? {
-        val extensionState = components.core.store.state.extensions.values.firstOrNull {
-            it.activeOptionsPage == activeOptionsPage
+    internal fun suppressOptionsPageInAddonManagement(
+        currentDestinationId: Int?,
+        activeOptionsPage: ActiveOptionsPage,
+    ): Boolean {
+        if (currentDestinationId !in ADDON_MANAGEMENT_DESTINATIONS) {
+            return false
         }
+        findExtensionForOptionsPage(activeOptionsPage)
+            ?.let {
+                components.core.store.dispatch(
+                    WebExtensionAction.ClearOptionsPageSession(it.id),
+                )
+            }
+        return true
+    }
+
+    @VisibleForTesting
+    internal fun createOpenOptionsPageDirections(activeOptionsPage: ActiveOptionsPage): NavDirections? {
+        val extensionState = findExtensionForOptionsPage(activeOptionsPage)
 
         return extensionState?.let {
             NavGraphDirections.actionGlobalWebExtensionActionOptionsPageFragment(
@@ -1485,6 +1507,10 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
             )
         }
     }
+
+    private fun findExtensionForOptionsPage(activeOptionsPage: ActiveOptionsPage): WebExtensionState? =
+        components.core.store.state.extensions.values
+            .firstOrNull { it.activeOptionsPage == activeOptionsPage }
 
     /**
      * The root container is null at this point, so let the HomeActivity know that
@@ -1617,5 +1643,13 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
         private const val PWA_RECENTLY_USED_THRESHOLD = DateUtils.DAY_IN_MILLIS * 30L
 
         private const val REQUEST_CODE_CAMERA_PERMISSIONS = 1
+
+        private val ADDON_MANAGEMENT_DESTINATIONS = setOf(
+            R.id.addonsManagementFragment,
+            R.id.installedAddonDetailsFragment,
+            R.id.addonInternalSettingsFragment,
+            R.id.addonDetailsFragment,
+            R.id.addonPermissionsDetailFragment,
+        )
     }
 }

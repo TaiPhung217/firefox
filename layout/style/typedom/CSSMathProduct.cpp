@@ -7,6 +7,7 @@
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/ServoStyleConsts.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/CSSMathInvert.h"
 #include "mozilla/dom/CSSMathProductBinding.h"
@@ -21,6 +22,20 @@ CSSMathProduct::CSSMathProduct(nsCOMPtr<nsISupports> aParent,
                                RefPtr<CSSNumericArray> aValues)
     : CSSMathValue(std::move(aParent), MathValueType::MathProduct),
       mValues(std::move(aValues)) {}
+
+// static
+RefPtr<CSSMathProduct> CSSMathProduct::Create(
+    nsCOMPtr<nsISupports> aParent, const StyleMathProduct& aMathProduct) {
+  nsTArray<RefPtr<CSSNumericValue>> values;
+
+  for (const auto& value : aMathProduct) {
+    values.AppendElement(CSSNumericValue::Create(aParent, value));
+  }
+
+  auto array = MakeRefPtr<CSSNumericArray>(aParent, std::move(values));
+
+  return MakeRefPtr<CSSMathProduct>(std::move(aParent), std::move(array));
+}
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(CSSMathProduct, CSSMathValue)
 NS_IMPL_CYCLE_COLLECTION_INHERITED(CSSMathProduct, CSSMathValue, mValues)
@@ -105,6 +120,16 @@ void CSSMathProduct::ToCssTextWithProperty(const CSSPropertyId& aPropertyId,
   if (!aContext.IsParenLess()) {
     aDest.Append(")"_ns);
   }
+}
+
+StyleMathSum CSSMathProduct::ToStyleMathProduct() const {
+  nsTArray<StyleNumericValue> values;
+
+  for (const RefPtr<CSSNumericValue>& value : mValues->GetValues()) {
+    values.AppendElement(value->ToStyleNumericValue());
+  }
+
+  return StyleMathProduct{std::move(values)};
 }
 
 const CSSMathProduct& CSSMathValue::GetAsCSSMathProduct() const {

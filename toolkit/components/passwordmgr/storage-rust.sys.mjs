@@ -59,19 +59,21 @@ const loginInfoToLoginEntry = loginInfo =>
 
 // Convert a LoginInfo to a LoginEntryWithMeta, to be used for migrating
 // records between legacy and Rust storage.
-const loginInfoToLoginEntryWithMeta = loginInfo =>
-  new LoginEntryWithMeta({
+const loginInfoToLoginEntryWithMeta = loginInfo => {
+  const now = Date.now();
+  return new LoginEntryWithMeta({
     entry: loginInfoToLoginEntry(loginInfo),
     meta: new LoginMeta({
       id: loginInfo.guid || Services.uuid.generateUUID().toString(),
-      timesUsed: loginInfo.timesUsed,
-      timeCreated: loginInfo.timeCreated,
-      timeLastUsed: loginInfo.timeLastUsed,
-      timePasswordChanged: loginInfo.timePasswordChanged,
+      timesUsed: loginInfo.timesUsed || 1,
+      timeCreated: loginInfo.timeCreated || now,
+      timeLastUsed: loginInfo.timeLastUsed || now,
+      timePasswordChanged: loginInfo.timePasswordChanged || now,
       timeLastBreachAlertDismissed:
         loginInfo.timeLastBreachAlertDismissed || null,
     }),
   });
+};
 
 // Convert a Login instance, as returned from Rust Logins, to a LoginInfo
 const loginToLoginInfo = login => {
@@ -338,14 +340,7 @@ export class LoginManagerRustStorage {
             this.#storageAdapter = new RustLoginsStoreAdapter(store);
             this.log("Rust login storage ready.");
 
-            // All LoginManager storage backends must have their own shutdown
-            // blocker to ensure that they finalize properly.
-            lazy.AsyncShutdown.profileChangeTeardown.addBlocker(
-              "LoginManagerRustStorage: Interrupt IO operations on login store",
-              async () => this.finalize()
-            );
-
-            resolve(this);
+            this._registerShutdownBlocker().then(() => resolve(this));
           });
         });
       } catch (e) {
@@ -367,6 +362,28 @@ export class LoginManagerRustStorage {
 
     // Note: This is a synchronous call.
     this.#storageAdapter.shutdown();
+    return Promise.resolve();
+  }
+
+  /**
+   * Ensure the storage is finalized at shutdown. All LoginManager storage
+   * backends must have their own shutdown blocker to finalize properly.
+   *
+   * In the corner case where the shutdown phase has already passed by the time
+   * we get here, registering a blocker would throw, so we call `finalize()`
+   * immediately instead.
+   *
+   * @param {object} phase An `AsyncShutdown` phase object. Exposed as a
+   *   parameter for testing.
+   */
+  _registerShutdownBlocker(phase = lazy.AsyncShutdown.profileChangeTeardown) {
+    if (phase.isClosed) {
+      return this.finalize();
+    }
+    phase.addBlocker(
+      "LoginManagerRustStorage: Interrupt IO operations on login store",
+      async () => this.finalize()
+    );
     return Promise.resolve();
   }
 
@@ -430,6 +447,9 @@ export class LoginManagerRustStorage {
     );
 
     if (this.#isActive) {
+      Glean.pwmgr.numSavedPasswords.set(
+        await this.countLoginsAsync("", "", "")
+      );
       for (const item of result) {
         const login = continueOnDuplicates ? item.login : item;
         if (login) {
@@ -690,6 +710,9 @@ export class LoginManagerRustStorage {
     }
 
     if (this.#isActive) {
+      Glean.pwmgr.numSavedPasswords.set(
+        await this.countLoginsAsync("", "", "")
+      );
       lazy.LoginHelper.notifyStorageChanged("removeLogin", login);
     }
   }
